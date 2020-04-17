@@ -10,21 +10,26 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
+// aliasMetadataFields is a list of the default alias metadata
+// added to tokens during login. The default alias type used
+// by this back-end is the role ID. Subsequently, the default
+// fields included are expected to have a low rate of change
+// when the role ID is in use.
 var aliasMetadataFields = &aliasmetadata.Fields{
 	Default: []string{
 		"account_id",
-		"ami_id",
 		"auth_type",
+	},
+	AvailableToAdd: []string{
+		"ami_id",
 		"canonical_arn",
+		"client_arn",
 		"client_user_id",
 		"inferred_aws_region",
 		"inferred_entity_id",
 		"inferred_entity_type",
 		"instance_id",
 		"region",
-	},
-	AvailableToAdd: []string{
-		"client_arn",
 	},
 }
 
