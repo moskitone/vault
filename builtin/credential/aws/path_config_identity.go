@@ -42,7 +42,7 @@ func (b *backend) pathConfigIdentity() *framework.Path {
 				Default:     identityAliasEC2InstanceID,
 				Description: fmt.Sprintf("Configure how the AWS auth method generates entity alias when using EC2 auth. Valid values are %q, %q, and %q. Defaults to %q.", identityAliasRoleID, identityAliasEC2InstanceID, identityAliasEC2ImageID, identityAliasRoleID),
 			},
-			aliasmetadata.FieldName: aliasmetadata.Schema(aliasMetadataFields),
+			aliasmetadata.FieldName: aliasmetadata.FieldSchema(aliasMetadataFields),
 		},
 
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -141,9 +141,9 @@ func pathConfigIdentityUpdate(ctx context.Context, req *logical.Request, data *f
 }
 
 type identityConfig struct {
-	IAMAlias string `json:"iam_alias"`
-	EC2Alias string `json:"ec2_alias"`
-	aliasmetadata.Handler
+	IAMAlias              string `json:"iam_alias"`
+	EC2Alias              string `json:"ec2_alias"`
+	aliasmetadata.Handler `json:"alias_metadata_handler"`
 }
 
 const identityAliasIAMUniqueID = "unique_id"

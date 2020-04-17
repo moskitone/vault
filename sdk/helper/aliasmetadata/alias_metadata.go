@@ -8,6 +8,10 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
+// Fields is for configuring a back-end's available
+// default and additional fields. These are used for
+// providing a verbose field description, and for parsing
+// user input.
 type Fields struct {
 	// Default is a list of the default fields that should
 	// be included if a user sends "default" in their list
@@ -21,9 +25,13 @@ type Fields struct {
 	AvailableToAdd []string
 }
 
+// FieldName is the user-facing name for the field.
 const FieldName = "alias_metadata"
 
-func Schema(fields *Fields) *framework.FieldSchema {
+// FieldSchema takes the default and additionally available
+// fields, and uses them to generate a verbose description
+// regarding how to use the "alias_metadata" field.
+func FieldSchema(fields *Fields) *framework.FieldSchema {
 	return &framework.FieldSchema{
 		Type:        framework.TypeCommaStringSlice,
 		Description: description(fields),
@@ -35,12 +43,18 @@ func Schema(fields *Fields) *framework.FieldSchema {
 	}
 }
 
+// NewHandler instantiates a Handler that can be embedded
+// in your back-end config to help:
+//   - Store the user's selected fields
+//   - Parse and retrieve the user's input
+//   - Populate alias metadata given the available data and the user's configuration
 func NewHandler(fields *Fields) Handler {
 	return &handler{
 		fields: fields,
 	}
 }
 
+// Handler is an interface for handling alias metadata.
 type Handler interface {
 	GetAliasMetadata() []string
 	ParseAliasMetadata(data *framework.FieldData)
@@ -48,8 +62,10 @@ type Handler interface {
 }
 
 type handler struct {
-	// AliasMetadata is an explicit list of all the fields
-	// that are being added to alias metadata.
+	// AliasMetadata is an explicit list of all the user's configured
+	// fields that are being added to alias metadata. It will never
+	// include the "default" parameter, and instead includes the actual
+	// fields behind "default", if selected.
 	AliasMetadata []string `json:"alias_metadata"`
 
 	// fields is a list of the configured default and available
@@ -57,11 +73,18 @@ type handler struct {
 	fields *Fields
 }
 
+// GetAliasMetadata gets an explicit list of all the user's configured
+// fields that are being added to alias metadata. It will never
+// include the "default" parameter, and instead includes the actual
+// fields behind "default", if selected.
 func (h *handler) GetAliasMetadata() []string {
 	return h.AliasMetadata
 }
 
 // TODO test when nothing is sent, vs "default", vs "default,field1", by hand externally
+// ParseAliasMetadata takes a user's selected fields (or lack thereof),
+// converts it to a list of explicit fields, and adds it to the handler
+// for later storage.
 func (h *handler) ParseAliasMetadata(data *framework.FieldData) {
 	uniqueFields := make(map[string]bool)
 	aliasMetadata := data.Get(FieldName).([]string)
