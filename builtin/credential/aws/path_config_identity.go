@@ -5,9 +5,28 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/hashicorp/vault/sdk/helper/aliasmetadata"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/hashicorp/vault/sdk/logical"
 )
+
+var aliasMetadataFields = &aliasmetadata.Fields{
+	Default: []string{
+		"account_id",
+		"ami_id",
+		"auth_type",
+		"canonical_arn",
+		"client_user_id",
+		"inferred_aws_region",
+		"inferred_entity_id",
+		"inferred_entity_type",
+		"instance_id",
+		"region",
+	},
+	AvailableToAdd: []string{
+		"client_arn",
+	},
+}
 
 func (b *backend) pathConfigIdentity() *framework.Path {
 	return &framework.Path{
@@ -23,6 +42,7 @@ func (b *backend) pathConfigIdentity() *framework.Path {
 				Default:     identityAliasEC2InstanceID,
 				Description: fmt.Sprintf("Configure how the AWS auth method generates entity alias when using EC2 auth. Valid values are %q, %q, and %q. Defaults to %q.", identityAliasRoleID, identityAliasEC2InstanceID, identityAliasEC2ImageID, identityAliasRoleID),
 			},
+			aliasmetadata.FieldName: aliasmetadata.Schema(aliasMetadataFields),
 		},
 
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -45,9 +65,11 @@ func identityConfigEntry(ctx context.Context, s logical.Storage) (*identityConfi
 		return nil, err
 	}
 
-	var entry identityConfig
+	entry := &identityConfig{
+		Handler: aliasmetadata.NewHandler(aliasMetadataFields),
+	}
 	if entryRaw != nil {
-		if err := entryRaw.DecodeJSON(&entry); err != nil {
+		if err := entryRaw.DecodeJSON(entry); err != nil {
 			return nil, err
 		}
 	}
@@ -60,7 +82,7 @@ func identityConfigEntry(ctx context.Context, s logical.Storage) (*identityConfi
 		entry.EC2Alias = identityAliasRoleID
 	}
 
-	return &entry, nil
+	return entry, nil
 }
 
 func pathConfigIdentityRead(ctx context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
@@ -71,8 +93,9 @@ func pathConfigIdentityRead(ctx context.Context, req *logical.Request, _ *framew
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"iam_alias": config.IAMAlias,
-			"ec2_alias": config.EC2Alias,
+			"iam_alias":             config.IAMAlias,
+			"ec2_alias":             config.EC2Alias,
+			aliasmetadata.FieldName: config.GetAliasMetadata(),
 		},
 	}, nil
 }
@@ -102,6 +125,7 @@ func pathConfigIdentityUpdate(ctx context.Context, req *logical.Request, data *f
 		}
 		config.EC2Alias = ec2Alias
 	}
+	config.ParseAliasMetadata(data)
 
 	entry, err := logical.StorageEntryJSON("config/identity", config)
 	if err != nil {
@@ -119,6 +143,7 @@ func pathConfigIdentityUpdate(ctx context.Context, req *logical.Request, data *f
 type identityConfig struct {
 	IAMAlias string `json:"iam_alias"`
 	EC2Alias string `json:"ec2_alias"`
+	aliasmetadata.Handler
 }
 
 const identityAliasIAMUniqueID = "unique_id"
