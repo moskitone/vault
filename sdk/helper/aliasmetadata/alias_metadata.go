@@ -104,8 +104,10 @@ func (h *handler) ParseAliasMetadata(data *framework.FieldData) {
 	}
 }
 
-func (h *handler) PopulateDesiredAliasMetadata(auth *logical.Auth, fieldValues map[string]string) {
-	for fieldName, fieldValue := range fieldValues {
+// PopulateDesiredAliasMetadata takes the available alias metadata and,
+// if the auth should have it, adds it to the auth's alias metadata.
+func (h *handler) PopulateDesiredAliasMetadata(auth *logical.Auth, available map[string]string) {
+	for fieldName, fieldValue := range available {
 		if strutil.StrListContains(h.AliasMetadata, fieldName) {
 			auth.Alias.Metadata[fieldName] = fieldValue
 		}
