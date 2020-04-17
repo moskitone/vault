@@ -3,9 +3,12 @@ package aliasmetadata
 /*
 aliasmetadata is a package offering convenience and
 standardization when supporting an `alias_metadata`
-field in your configuration. To see an example of
+field in a plugin's configuration. To see an example of
 how to add and use it, check out how these structs
 and fields are used in the AWS auth method.
+
+Or, check out its acceptance test in this package to
+see its integration points.
 */
 
 import (
@@ -98,26 +101,41 @@ func (h *handler) GetAliasMetadata() []string {
 // converts it to a list of explicit fields, and adds it to the handler
 // for later storage.
 func (h *handler) ParseAliasMetadata(data *framework.FieldData) error {
+	userProvided, ok := data.GetOk(FieldName)
+	if !ok {
+		// Nothing further to do here.
+		return nil
+	}
+
+	// uniqueFields protects against weird edge cases like if
+	// a user provided "default,field1,field2,default".
 	uniqueFields := make(map[string]bool)
-	userProvided := data.Get(FieldName).([]string)
-	for _, field := range userProvided {
+	for _, field := range userProvided.([]string) {
 		if field == "default" {
+			// Add the fields that "default" represents, rather
+			// than the explicit field.
 			for _, dfltField := range h.fields.Default {
 				uniqueFields[dfltField] = true
 			}
 		} else {
+			// Make sure they've sent a supported field so we can
+			// error early if not.
 			if !strutil.StrListContains(append(h.fields.Default, h.fields.AvailableToAdd...), field) {
 				return fmt.Errorf("%q is not an available field, please select from: %s", field, strings.Join(h.fields.AvailableToAdd, ", "))
 			}
 			uniqueFields[field] = true
 		}
 	}
+	// Attach the fields we've received so they'll be stored.
 	aliasMetadata := make([]string, len(uniqueFields))
 	i := 0
 	for fieldName := range uniqueFields {
 		aliasMetadata[i] = fieldName
 		i++
 	}
+	// Fulfilling the pointer here flags that the user has made
+	// an explicit selection so we shouldn't just fall back to
+	// our defaults.
 	h.AliasMetadata = &aliasMetadata
 	return nil
 }
@@ -125,13 +143,13 @@ func (h *handler) ParseAliasMetadata(data *framework.FieldData) error {
 // PopulateDesiredAliasMetadata takes the available alias metadata and,
 // if the auth should have it, adds it to the auth's alias metadata.
 func (h *handler) PopulateDesiredAliasMetadata(auth *logical.Auth, available map[string]string) {
-	toCheck := h.fields.Default
+	fieldsToInclude := h.fields.Default
 	if h.AliasMetadata != nil {
-		toCheck = *h.AliasMetadata
+		fieldsToInclude = *h.AliasMetadata
 	}
-	for fieldName, fieldValue := range available {
-		if strutil.StrListContains(toCheck, fieldName) {
-			auth.Alias.Metadata[fieldName] = fieldValue
+	for availableField, itsValue := range available {
+		if strutil.StrListContains(fieldsToInclude, availableField) {
+			auth.Alias.Metadata[availableField] = itsValue
 		}
 	}
 }
