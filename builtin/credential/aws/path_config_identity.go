@@ -130,7 +130,9 @@ func pathConfigIdentityUpdate(ctx context.Context, req *logical.Request, data *f
 		}
 		config.EC2Alias = ec2Alias
 	}
-	config.ParseAliasMetadata(data)
+	if err := config.ParseAliasMetadata(data); err != nil {
+		return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
+	}
 
 	entry, err := logical.StorageEntryJSON("config/identity", config)
 	if err != nil {
