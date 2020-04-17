@@ -94,7 +94,6 @@ func (h *handler) GetAliasMetadata() []string {
 	return *h.AliasMetadata
 }
 
-// TODO test when nothing is sent, vs "default", vs "default,field1", by hand externally
 // ParseAliasMetadata takes a user's selected fields (or lack thereof),
 // converts it to a list of explicit fields, and adds it to the handler
 // for later storage.
