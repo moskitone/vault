@@ -55,18 +55,15 @@ func FieldSchema(fields *Fields) *framework.FieldSchema {
 	}
 }
 
-// NewHandler instantiates a Handler that can be embedded
-// in your back-end config to help:
-//   - Store the user's selected fields
-//   - Parse and retrieve the user's input
-//   - Populate alias metadata given the available data and the user's configuration
+// NewHandler instantiates a Handler to be embedded in your config.
 func NewHandler(fields *Fields) Handler {
 	return &handler{
 		fields: fields,
 	}
 }
 
-// Handler is an interface for handling alias metadata.
+// Handler is an interface for the helper methods you get on your
+// config when you embed the Handler.
 type Handler interface {
 	GetAliasMetadata() []string
 	ParseAliasMetadata(data *framework.FieldData) error
@@ -82,11 +79,14 @@ type handler struct {
 	AliasMetadata *[]string `json:"alias_metadata"`
 
 	// fields is a list of the configured default and available
-	// fields.
+	// fields. It's intentionally not jsonified and therefore
+	// isn't stored between runs, since this is configured by
+	// our code and not the user.
 	fields *Fields
 }
 
-// GetAliasMetadata gets an explicit list of all the user's configured
+// GetAliasMetadata is intended to be used on config reads.
+// It gets an explicit list of all the user's configured
 // fields that are being added to alias metadata. It will never
 // include the "default" parameter, and instead includes the actual
 // fields behind "default", if selected.
@@ -97,7 +97,8 @@ func (h *handler) GetAliasMetadata() []string {
 	return *h.AliasMetadata
 }
 
-// ParseAliasMetadata takes a user's selected fields (or lack thereof),
+// ParseAliasMetadata is intended to be used on config create/update.
+// It takes a user's selected fields (or lack thereof),
 // converts it to a list of explicit fields, and adds it to the handler
 // for later storage.
 func (h *handler) ParseAliasMetadata(data *framework.FieldData) error {
