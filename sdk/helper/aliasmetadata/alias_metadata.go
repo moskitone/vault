@@ -1,14 +1,17 @@
 package aliasmetadata
 
 /*
-aliasmetadata is a package offering convenience and
-standardization when supporting an `alias_metadata`
-field in a plugin's configuration. To see an example of
-how to add and use it, check out how these structs
-and fields are used in the AWS auth method.
+	aliasmetadata is a package offering convenience and
+	standardization when supporting an `alias_metadata`
+	field in a plugin's configuration. This then controls
+	what alias metadata is added to an Auth during login.
 
-Or, check out its acceptance test in this package to
-see its integration points.
+	To see an example of how to add and use it, check out
+	how these structs and fields are used in the AWS auth
+	method.
+
+	Or, check out its acceptance test in this package to
+	see its integration points.
 */
 
 import (
@@ -141,7 +144,9 @@ func (h *handler) ParseAliasMetadata(data *framework.FieldData) error {
 	return nil
 }
 
-// PopulateDesiredAliasMetadata takes the available alias metadata and,
+// PopulateDesiredAliasMetadata is intended to be used during login
+// just before returning an auth.
+// It takes the available alias metadata and,
 // if the auth should have it, adds it to the auth's alias metadata.
 func (h *handler) PopulateDesiredAliasMetadata(auth *logical.Auth, available map[string]string) {
 	fieldsToInclude := h.fields.Default
